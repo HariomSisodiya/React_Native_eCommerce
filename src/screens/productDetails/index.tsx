@@ -14,58 +14,36 @@ import FetchByCategory from '../fetchByCategory';
 import {getStorageItem, setStorageItem} from '../../utils/asyncstorage';
 import {asyncstorageKey} from '../../utils/constant/asyncstorageKey';
 import {ProductDetailsStyle} from './style';
-type Product = {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  price: string;
-  brand: string;
-  discountPercentage: string;
-  rating: string;
-  stock: number;
-  warrantyInformation: string;
-  returnPolicy: string;
-};
+import {useDispatch, useSelector} from 'react-redux';
+import {
+  Product,
+  productDetailFetch,
+  setFavourite,
+} from '../../redux/slice/productDetailSlice/productDetailSlice';
 
 const ProductDetails = ({route, navigation}: any) => {
   const {id, slug} = route.params;
-  const [product, setProduct] = useState<Product | null>(null);
-  const [isFavourite, setFavourite] = useState(false);
-  const [loading, setLoading] = useState(true);
-  // const [wishList, setWishList] = useState([]);
+  const dispatch = useDispatch();
+  const {product, loading, isFavourite} = useSelector(
+    (state: any) => state.productDetails,
+  );
 
   const styles = ProductDetailsStyle();
 
   const flatListRef = useRef<any>(null);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await axios.get(
-          `https://dummyjson.com/products/${id}`,
-        );
-        setProduct(response.data);
-
-        // Check if the product is already in the wishlist
-        const existingWishList = await getStorageItem(
-          asyncstorageKey.productItem,
-        );
-        const wishL: any[] = existingWishList
-          ? JSON.parse(existingWishList)
-          : [];
-        const itemExists = wishL.some(
-          (item: any) => item.id === response.data.id,
-        );
-        setFavourite(itemExists);
-      } catch (error) {
-        console.log('Error fetching product data 1');
-      } finally {
-        setLoading(false);
-      }
+    const fetchData = async () => {
+      dispatch(productDetailFetch(id));
+      const existingWishList = await getStorageItem(
+        asyncstorageKey.productItem,
+      );
+      const wishL = existingWishList ? JSON.parse(existingWishList) : [];
+      const itemExists = wishL.some((item: any) => item.id === id);
+      dispatch(setFavourite(itemExists));
     };
-    fetchProduct();
-  }, [id]);
+    fetchData();
+  }, [id, dispatch]);
 
   if (loading) {
     return (
@@ -86,7 +64,7 @@ const ProductDetails = ({route, navigation}: any) => {
       if (!itemExists) {
         wishL.push(data);
         await setStorageItem(asyncstorageKey.productItem, wishL);
-        setFavourite(true);
+        dispatch(setFavourite(true));
         Alert.alert('Success', 'Item successfully added in Wish List');
       } else {
         Alert.alert(
@@ -106,7 +84,7 @@ const ProductDetails = ({route, navigation}: any) => {
                   asyncstorageKey.productItem,
                   updateWishList,
                 );
-                setFavourite(false);
+                dispatch(setFavourite(false));
                 Alert.alert(
                   'Success',
                   'Item removed successfully from wish list',
