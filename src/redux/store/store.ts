@@ -4,6 +4,7 @@ import fetchCategoryReducer from '../slice/fetchCategorySlice/fetchCategorySlice
 import productDetailReducer from '../slice/productDetailSlice/productDetailSlice';
 import storage from 'reduxjs-toolkit-persist/lib/storage';
 import {persistReducer, persistStore} from 'reduxjs-toolkit-persist';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const rootReducer = combineReducers({
   category: categoryReducer,
@@ -13,13 +14,19 @@ const rootReducer = combineReducers({
 
 const persistConfig = {
   key: 'root',
-  storage,
+  storage: AsyncStorage,
 };
 
 const persistReducers = persistReducer(persistConfig, rootReducer);
 
 const store = configureStore({
   reducer: persistReducers,
+  middleware: (getDefaultMiddleware: any) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoreActions: ['persist/PERSIST'],
+      },
+    }),
 });
 
 const persistor = persistStore(store);
